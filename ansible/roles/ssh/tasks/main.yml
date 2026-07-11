@@ -1,0 +1,32 @@
+---
+- name: Ensure OpenSSH server is installed
+  ansible.builtin.apt:
+    name: openssh-server
+    state: present
+    update_cache: false
+
+- name: Configure SSH settings
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+    backup: true
+  loop:
+    - {regexp: '^#?Port ', line: 'Port {{ ssh_port }}'}
+    - {regexp: '^#?PermitRootLogin ', line: 'PermitRootLogin {{ ssh_permit_root_login }}'}
+    - {regexp: '^#?PubkeyAuthentication ', line: 'PubkeyAuthentication {{ ssh_pubkey_authentication }}'}
+    - {regexp: '^#?PasswordAuthentication ', line: 'PasswordAuthentication {{ ssh_password_authentication }}'}
+    - {regexp: '^#?ChallengeResponseAuthentication ', line: 'ChallengeResponseAuthentication {{ ssh_challenge_response_authentication }}'}
+    - {regexp: '^#?UsePAM ', line: 'UsePAM {{ ssh_use_pam }}'}
+    - {regexp: '^#?PrintMotd ', line: 'PrintMotd {{ ssh_print_motd }}'}
+    - {regexp: '^#?LogLevel ', line: 'LogLevel {{ ssh_loglevel }}'}
+    - {regexp: '^#?ClientAliveInterval ', line: 'ClientAliveInterval {{ ssh_client_alive_interval }}'}
+    - {regexp: '^#?ClientAliveCountMax ', line: 'ClientAliveCountMax {{ ssh_client_alive_count_max }}'}
+  notify: Restart sshd
+
+- name: Ensure SSH service is enabled and running
+  ansible.builtin.systemd:
+    name: sshd
+    enabled: true
+    state: started

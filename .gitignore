@@ -1,0 +1,65 @@
+# =====================
+# Ansible
+# =====================
+*.retry
+ansible/inventory/**/host_vars/*/vault_*
+ansible/.vault_pass
+ansible/.vault_password
+
+# =====================
+# Environment files
+# =====================
+.env
+.env.local
+.env.*.local
+
+# =====================
+# Terraform (future)
+# =====================
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# =====================
+# Kubernetes (future)
+# =====================
+**/.kube/config
+**/kubeconfig*
+**/kube-config*
+
+# =====================
+# IDE & Editors
+# =====================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.orig
+*.bak
+
+# =====================
+# OS files
+# =====================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# =====================
+# Secrets catch-all
+# =====================
+*secret*
+*vault*
+*.age
+*.sops
+
+.opencode/
+.md
+opencode.json

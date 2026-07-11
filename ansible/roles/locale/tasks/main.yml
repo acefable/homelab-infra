@@ -1,0 +1,17 @@
+---
+- name: Ensure locale is generated
+  community.general.locale_gen:
+    name: "{{ locale_locale }}"
+    state: present
+
+- name: Set system locale
+  ansible.builtin.lineinfile:
+    path: /etc/default/locale
+    create: true
+    mode: "0644"
+    line: "{{ item }}"
+    state: present
+  loop:
+    - "LANG={{ locale_locale }}"
+    - "LANGUAGE={{ locale_locale }}"
+    - "LC_ALL={{ locale_locale }}"

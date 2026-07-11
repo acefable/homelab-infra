@@ -1,0 +1,10 @@
+---
+common_packages:
+  - git
+  - curl
+  - wget
+  - unzip
+  - jq
+  - htop
+  - vim
+  - net-tools

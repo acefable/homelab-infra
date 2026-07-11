@@ -1,0 +1,43 @@
+---
+- name: Set apt mirror in deb822 sources (Ubuntu 24.04+)
+  ansible.builtin.replace:
+    path: /etc/apt/sources.list.d/ubuntu.sources
+    regexp: '^(URIs:\s*).*'
+    replace: '\1{{ apt_mirror }}'
+    backup: true
+  when:
+    - ansible_facts.distribution == 'Ubuntu'
+    - ansible_facts.distribution_version is version('24.04', '>=')
+  tags: apt_mirror
+
+- name: Set apt mirror in legacy sources.list (Ubuntu < 24.04)
+  ansible.builtin.replace:
+    path: /etc/apt/sources.list
+    regexp: '^(deb\s+)http://[^/]+/ubuntu/?'
+    replace: '\1{{ apt_mirror }}/'
+    backup: true
+  when:
+    - ansible_facts.distribution == 'Ubuntu'
+    - ansible_facts.distribution_version is version('24.04', '<')
+  tags: apt_mirror
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Upgrade all packages
+  ansible.builtin.apt:
+    upgrade: dist
+    autoremove: true
+    dpkg_options: "force-confdef,force-confold"
+  register: apt_upgrade_result
+  retries: 3
+  delay: 10
+  until: apt_upgrade_result is success
+
+- name: Reboot if kernel was updated
+  ansible.builtin.reboot:
+    reboot_timeout: 300
+    pre_reboot_delay: 30
+  when: apt_upgrade_result is changed and ansible_facts.os_family == 'Debian'

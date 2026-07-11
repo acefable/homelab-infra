@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  role_name: ssh
+  author: homelab
+  description: Configures OpenSSH server settings
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - all
+  galaxy_tags:
+    - system
+    - ssh
+    - security
+    - ubuntu
+dependencies: []

@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  role_name: ntp
+  author: homelab
+  description: Configures system NTP using systemd-timesyncd
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - all
+  galaxy_tags:
+    - system
+    - ntp
+    - time
+    - ubuntu
+dependencies: []
