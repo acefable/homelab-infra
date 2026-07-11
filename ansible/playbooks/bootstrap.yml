@@ -26,3 +26,13 @@
 
   roles:
     - role: security
+
+- name: Layer 3 — Kubernetes
+  hosts: all
+  become: true
+  gather_facts: true
+  tags:
+    - init
+    - kubernetes
+  roles:
+    - role: k3s
