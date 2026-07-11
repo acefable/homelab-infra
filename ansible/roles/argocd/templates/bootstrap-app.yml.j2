@@ -9,6 +9,8 @@ spec:
     repoURL: {{ argocd_repo_url }}
     targetRevision: {{ argocd_target_revision }}
     path: {{ argocd_app_path }}
+    directory:
+      recurse: true
   destination:
     server: https://kubernetes.default.svc
     namespace: {{ argocd_app_destination_namespace }}
