@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  role_name: cloudflare_tunnel
+  author: homelab
+  description: Install and configure Cloudflare Tunnel connector
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - all
+  galaxy_tags:
+    - networking
+    - cloudflare
+    - tunnel
+    - ubuntu
+dependencies: []

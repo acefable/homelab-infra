@@ -36,3 +36,13 @@
     - kubernetes
   roles:
     - role: k3s
+
+- name: Layer 4 — Cloudflare Tunnel
+  hosts: all
+  become: true
+  gather_facts: true
+  tags:
+    - init
+    - networking
+  roles:
+    - role: cloudflare-tunnel
