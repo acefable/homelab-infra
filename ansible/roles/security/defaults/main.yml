@@ -1,0 +1,21 @@
+---
+# UFW
+security_ufw_default_deny: true
+security_ufw_ssh_port: 22
+
+# Fail2Ban
+security_fail2ban_enabled: true
+security_fail2ban_bantime: 1h
+security_fail2ban_findtime: 600
+security_fail2ban_maxretry: 5
+
+# Automatic security updates
+security_unattended_upgrades_enabled: true
+security_unattended_upgrades_reboot: false
+security_unattended_upgrades_reboot_time: "02:00"
+
+# Audit tools
+security_audit_tools:
+  - auditd
+  - lynis
+  - rkhunter

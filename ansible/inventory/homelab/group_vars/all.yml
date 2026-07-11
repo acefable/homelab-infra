@@ -21,14 +21,37 @@ ntp_fallback_servers:
   - 0.ubuntu.pool.ntp.org
   - 1.ubuntu.pool.ntp.org
 
-# SSH
+# SSH — Layer 1: permissive for bootstrap; Layer 2+: hardened
 ssh_port: 22
-ssh_permit_root_login: "prohibit-password"
+ssh_permit_root_login: "no"
 ssh_pubkey_authentication: "yes"
-ssh_password_authentication: "yes"  # Enabled in Layer 1; disabled in Layer 2
+ssh_password_authentication: "no"       # Disabled in Layer 2 after SSH keys verified
 ssh_challenge_response_authentication: "no"
 ssh_use_pam: "yes"
 ssh_print_motd: "no"
 ssh_loglevel: "VERBOSE"
 ssh_client_alive_interval: 300
 ssh_client_alive_count_max: 2
+
+# Layer 2 — Security Variables
+
+# UFW
+security_ufw_default_deny: true
+security_ufw_ssh_port: "{{ ssh_port }}"
+
+# Fail2Ban
+security_fail2ban_enabled: true
+security_fail2ban_bantime: 1h
+security_fail2ban_findtime: 600
+security_fail2ban_maxretry: 5
+
+# Automatic security updates
+security_unattended_upgrades_enabled: true
+security_unattended_upgrades_reboot: false
+security_unattended_upgrades_reboot_time: "02:00"
+
+# Audit tools
+security_audit_tools:
+  - auditd
+  - lynis
+  - rkhunter

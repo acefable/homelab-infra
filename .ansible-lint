@@ -1,0 +1,21 @@
+---
+# ansible-lint configuration for homelab-infra
+#
+# Usage: Run ansible-lint from the repo root like:
+#   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-lint ansible/playbooks/bootstrap.yml
+#
+# Or run from the ansible/ directory (which auto-discovers ansible.cfg):
+#   cd ansible && ansible-lint playbooks/bootstrap.yml
+#
+# Ansible config lives in the ansible/ subdirectory — it configures:
+#   - roles_path = roles/         (points to ansible/roles/)
+#   - inventory                    (points to ansible/inventory/homelab/)
+#
+# When running from the repo root, set ANSIBLE_CONFIG so ansible-lint
+# can find roles, modules, and collections.
+
+exclude_paths:
+  - .cache/
+
+mock_modules: []
+mock_roles: []

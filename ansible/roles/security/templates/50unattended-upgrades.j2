@@ -1,0 +1,32 @@
+// {{ ansible_managed }}
+// Unattended-Upgrade configuration — managed by Ansible
+// Manual edits will be overwritten.
+
+Unattended-Upgrade::Allowed-Origins {
+    "${distro_id}:${distro_codename}";
+    "${distro_id}:${distro_codename}-security";
+    "${distro_id}ESMApps:${distro_codename}-apps-security";
+    "${distro_id}ESM:${distro_codename}-infra-security";
+};
+
+// Auto-fix broken packages
+Unattended-Upgrade::AutoFixInterruptedDpkg "true";
+
+// Minimal steps
+Unattended-Upgrade::MinimalSteps "true";
+
+// Install updates on shutdown
+Unattended-Upgrade::InstallOnShutdown "false";
+
+// Clean unused deps
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+
+// Automatic reboot (disabled by default)
+Unattended-Upgrade::Automatic-Reboot "{{ 'true' if security_unattended_upgrades_reboot else 'false' }}";
+{% if security_unattended_upgrades_reboot %}
+Unattended-Upgrade::Automatic-Reboot-Time "{{ security_unattended_upgrades_reboot_time }}";
+{% endif %}
+
+// Syslog
+Unattended-Upgrade::SyslogEnable "true";
+Unattended-Upgrade::SyslogFacility "daemon";

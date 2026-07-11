@@ -1,0 +1,20 @@
+---
+galaxy_info:
+  role_name: security
+  author: homelab
+  description: Hardens Ubuntu server with firewall, intrusion prevention, automatic updates, audit tools, and sysctl hardening
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - all
+  galaxy_tags:
+    - security
+    - hardening
+    - ufw
+    - fail2ban
+    - auditd
+    - lynis
+    - ubuntu
+dependencies: []
