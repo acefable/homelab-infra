@@ -3,6 +3,9 @@
   hosts: all
   become: true
   gather_facts: true
+  tags:
+    - init
+    - bootstrap
 
   roles:
     - role: apt
@@ -12,3 +15,14 @@
     - role: locale
     - role: ntp
     - role: ssh
+
+- name: Layer 2 — Security Hardening
+  hosts: all
+  become: true
+  gather_facts: true
+  tags:
+    - init
+    - security
+
+  roles:
+    - role: security

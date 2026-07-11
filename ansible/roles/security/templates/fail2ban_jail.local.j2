@@ -1,0 +1,28 @@
+# {{ ansible_managed }}
+# Fail2Ban configuration — managed by Ansible
+# Manual edits will be overwritten.
+
+[DEFAULT]
+# Ban IP for {{ security_fail2ban_bantime }}
+bantime = {{ security_fail2ban_bantime }}
+
+# Find failures within this window (seconds)
+findtime = {{ security_fail2ban_findtime }}
+
+# Max retries before ban
+maxretry = {{ security_fail2ban_maxretry }}
+
+# Use systemd journal for log access
+backend = systemd
+
+# Default action: ban only
+action = %(action_)s
+
+[sshd]
+enabled = true
+port = {{ security_ufw_ssh_port | default('ssh') }}
+logpath = %(sshd_log)s
+backend = %(sshd_backend)s
+
+# Prevent lockout: ignore local network (adjust to your subnet)
+# ignoreip = 127.0.0.1/8 192.168.0.0/16

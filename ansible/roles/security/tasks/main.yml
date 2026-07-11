@@ -1,0 +1,189 @@
+---
+# Layer 2 — Security Hardening
+# Applies security configuration to the server after Layer 1 bootstrap.
+
+- name: Ensure facts used by subsequent tasks are populated
+  ansible.builtin.setup:
+    gather_subset: "!all,network"
+  when: ansible_facts.os_family is not defined
+
+# ---------------------------------------------------------------------------
+# SSH Hardening
+# ---------------------------------------------------------------------------
+- name: Harden SSH — disable root login
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PermitRootLogin '
+    line: 'PermitRootLogin no'
+    state: present
+    backup: true
+  notify: Restart sshd
+
+- name: Harden SSH — disable password authentication
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PasswordAuthentication '
+    line: 'PasswordAuthentication no'
+    state: present
+    backup: true
+  notify: Restart sshd
+
+- name: Harden SSH — set max authentication attempts
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?MaxAuthTries '
+    line: 'MaxAuthTries 3'
+    state: present
+    backup: true
+  notify: Restart sshd
+
+- name: Harden SSH — set login grace time
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?LoginGraceTime '
+    line: 'LoginGraceTime 60'
+    state: present
+    backup: true
+  notify: Restart sshd
+
+# ---------------------------------------------------------------------------
+# UFW — Firewall
+# ---------------------------------------------------------------------------
+- name: Ensure ufw is installed
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+    update_cache: false
+
+- name: Set default inbound policy to deny
+  community.general.ufw:
+    direction: incoming
+    policy: deny
+
+- name: Set default outbound policy to allow
+  community.general.ufw:
+    direction: outgoing
+    policy: allow
+
+- name: Allow SSH access through firewall
+  community.general.ufw:
+    rule: allow
+    port: "{{ security_ufw_ssh_port }}"
+    proto: tcp
+
+- name: Enable ufw (non-interactive)
+  community.general.ufw:
+    state: enabled
+
+# ---------------------------------------------------------------------------
+# Fail2Ban — Intrusion Prevention
+# ---------------------------------------------------------------------------
+- name: Ensure fail2ban is installed
+  ansible.builtin.apt:
+    name: fail2ban
+    state: present
+    update_cache: false
+
+- name: Ensure fail2ban jail.local directory exists
+  ansible.builtin.file:
+    path: /etc/fail2ban
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+
+- name: Configure fail2ban SSH jail
+  ansible.builtin.template:
+    src: fail2ban_jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart fail2ban
+
+- name: Enable and start fail2ban service
+  ansible.builtin.systemd:
+    name: fail2ban
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# ---------------------------------------------------------------------------
+# Automatic Security Updates
+# ---------------------------------------------------------------------------
+- name: Ensure unattended-upgrades is installed
+  ansible.builtin.apt:
+    name: unattended-upgrades
+    state: present
+    update_cache: false
+
+- name: Configure apt periodic updates
+  ansible.builtin.template:
+    src: 20auto-upgrades.j2
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    mode: "0644"
+    owner: root
+    group: root
+
+- name: Configure unattended-upgrades rules
+  ansible.builtin.template:
+    src: 50unattended-upgrades.j2
+    dest: /etc/apt/apt.conf.d/50unattended-upgrades
+    mode: "0644"
+    owner: root
+    group: root
+
+# ---------------------------------------------------------------------------
+# Audit Tools
+# ---------------------------------------------------------------------------
+- name: Install security audit tools
+  ansible.builtin.apt:
+    name: "{{ security_audit_tools }}"
+    state: present
+    update_cache: false
+
+- name: Ensure auditd service is running
+  ansible.builtin.systemd:
+    name: auditd
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# ---------------------------------------------------------------------------
+# Sysctl Kernel Hardening
+# ---------------------------------------------------------------------------
+- name: Apply sysctl network hardening settings
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: true
+  loop:
+    - {name: 'net.ipv4.tcp_syncookies', value: '1'}
+    - {name: 'net.ipv4.ip_forward', value: '0'}
+    - {name: 'net.ipv4.conf.all.rp_filter', value: '1'}
+    - {name: 'net.ipv4.conf.default.rp_filter', value: '1'}
+    - {name: 'net.ipv4.conf.all.accept_source_route', value: '0'}
+    - {name: 'net.ipv4.conf.default.accept_source_route', value: '0'}
+    - {name: 'net.ipv4.conf.all.accept_redirects', value: '0'}
+    - {name: 'net.ipv4.conf.default.accept_redirects', value: '0'}
+    - {name: 'net.ipv4.conf.all.secure_redirects', value: '0'}
+    - {name: 'net.ipv4.conf.default.secure_redirects', value: '0'}
+    - {name: 'net.ipv4.conf.all.log_martians', value: '1'}
+    - {name: 'net.ipv4.conf.default.log_martians', value: '1'}
+    - {name: 'net.ipv4.icmp_echo_ignore_broadcasts', value: '1'}
+    - {name: 'net.ipv4.icmp_ignore_bogus_error_responses', value: '1'}
+    - {name: 'net.ipv6.conf.all.accept_redirects', value: '0'}
+    - {name: 'net.ipv6.conf.default.accept_redirects', value: '0'}
+
+- name: Apply sysctl kernel hardening settings
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: true
+  loop:
+    - {name: 'kernel.dmesg_restrict', value: '1'}
+    - {name: 'kernel.kptr_restrict', value: '2'}
+    - {name: 'kernel.printk', value: '3 3 3 3'}
+    - {name: 'fs.file-max', value: '100000'}
