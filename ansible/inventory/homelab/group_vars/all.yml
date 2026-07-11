@@ -72,3 +72,14 @@ k3s_server_extra_args: ""
 
 # Node labels
 k3s_node_labels: {}
+
+# Layer 4 — Cloudflare Tunnel Variables
+
+# Tunnel ID (from Terraform output, set in .env as TF_VAR_cloudflare_tunnel_id)
+cloudflare_tunnel_id: "{{ lookup('env', 'TF_VAR_cloudflare_tunnel_id') | default('', true) }}"
+
+# Tunnel token (from Terraform output, used with cloudflared tunnel run --token)
+cloudflare_tunnel_token: "{{ lookup('env', 'TF_VAR_cloudflare_tunnel_token') | default('', true) }}"
+
+# Tunnel name (must match Terraform's tunnel_name)
+cloudflare_tunnel_name: "{{ lookup('env', 'TF_VAR_tunnel_name') | default('homelab-tunnel', true) }}"

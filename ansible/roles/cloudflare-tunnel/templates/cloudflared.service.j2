@@ -1,0 +1,14 @@
+[Unit]
+Description=Cloudflare Tunnel
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart={{ cloudflare_tunnel_bin }} tunnel run --token {{ cloudflare_tunnel_token }}
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
