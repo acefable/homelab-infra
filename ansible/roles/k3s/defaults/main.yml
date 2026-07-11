@@ -1,0 +1,29 @@
+---
+# K3s version — empty string installs latest stable release
+k3s_version: ""
+
+# K3s install script URL
+k3s_install_url: https://get.k3s.io
+
+# Kubeconfig permissions (644 allows non-root kubectl access)
+k3s_kubeconfig_mode: "644"
+
+# User to receive a copy of the kubeconfig
+k3s_kubeconfig_user: "{{ ansible_user | default('ubuntu') }}"
+
+# Additional flags passed to the K3s server installer
+# Example: "--disable traefik --disable servicelb"
+k3s_server_extra_args: ""
+
+# Node labels to apply — dict of key: value
+# Example: { "node-role.kubernetes.io/worker": "true" }
+k3s_node_labels: {}
+
+# UFW ports to open for K3s
+k3s_ufw_ports:
+  - port: 6443
+    proto: tcp
+    comment: Kubernetes API server
+  - port: 10250
+    proto: tcp
+    comment: Kubelet metrics

@@ -55,3 +55,20 @@ security_audit_tools:
   - auditd
   - lynis
   - rkhunter
+
+# Layer 3 — Kubernetes Variables
+
+# K3s version (empty = latest stable)
+k3s_version: ""
+
+# Kubeconfig permissions
+k3s_kubeconfig_mode: "644"
+
+# User to receive kubeconfig
+k3s_kubeconfig_user: "{{ ansible_user | default('ubuntu') }}"
+
+# Additional K3s server flags (e.g., --disable traefik)
+k3s_server_extra_args: ""
+
+# Node labels
+k3s_node_labels: {}
