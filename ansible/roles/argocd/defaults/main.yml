@@ -1,0 +1,18 @@
+---
+argocd_version: ""
+argocd_manifest_base_url: https://raw.githubusercontent.com/argoproj/argo-cd
+argocd_manifest_path: stable/manifests/install.yaml
+argocd_namespace: argocd
+argocd_server_service_type: ClusterIP
+argocd_repo_url: ""
+argocd_repo_name: homelab-infra
+argocd_app_path: kubernetes/apps
+argocd_app_name: homelab
+argocd_app_destination_namespace: default
+argocd_target_revision: HEAD
+argocd_auto_sync: true
+argocd_self_heal: true
+argocd_prune: true
+argocd_admin_password_hash: ""
+argocd_create_repo_secret: true
+argocd_bootstrap_app: true

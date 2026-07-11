@@ -46,3 +46,13 @@
     - networking
   roles:
     - role: cloudflare-tunnel
+
+- name: Layer 5 — GitOps with Argo CD
+  hosts: all
+  become: true
+  gather_facts: true
+  tags:
+    - init
+    - gitops
+  roles:
+    - role: argocd
