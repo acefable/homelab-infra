@@ -1,0 +1,11 @@
+---
+ssh_port: 22
+ssh_permit_root_login: "prohibit-password"
+ssh_pubkey_authentication: "yes"
+ssh_password_authentication: "yes"  # Enabled in Layer 1; disabled in Layer 2
+ssh_challenge_response_authentication: "no"
+ssh_use_pam: "yes"
+ssh_print_motd: "no"
+ssh_loglevel: "VERBOSE"
+ssh_client_alive_interval: 300
+ssh_client_alive_count_max: 2

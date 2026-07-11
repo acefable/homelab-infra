@@ -1,0 +1,4 @@
+---
+# APT mirror URL — override via APT_MIRROR env var or directly
+# Default: the main global archive (no country code)
+apt_mirror: "{{ lookup('env', 'APT_MIRROR') | default('http://archive.ubuntu.com/ubuntu', true) }}"

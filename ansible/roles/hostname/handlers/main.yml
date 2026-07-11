@@ -1,0 +1,3 @@
+---
+# Hostname changes take effect without restart, but applications
+# may need to re-read /etc/hostname. No handler necessary.

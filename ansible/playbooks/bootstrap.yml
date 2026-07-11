@@ -1,0 +1,14 @@
+---
+- name: Layer 1 — Bootstrap Ubuntu Server
+  hosts: all
+  become: true
+  gather_facts: true
+
+  roles:
+    - role: apt
+    - role: common-packages
+    - role: hostname
+    - role: timezone
+    - role: locale
+    - role: ntp
+    - role: ssh
