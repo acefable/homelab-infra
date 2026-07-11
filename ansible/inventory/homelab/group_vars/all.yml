@@ -83,3 +83,31 @@ cloudflare_tunnel_token: "{{ lookup('env', 'TF_VAR_cloudflare_tunnel_token') | d
 
 # Tunnel name (must match Terraform's tunnel_name)
 cloudflare_tunnel_name: "{{ lookup('env', 'TF_VAR_tunnel_name') | default('homelab-tunnel', true) }}"
+
+# Layer 5 — Argo CD (GitOps) Variables
+
+# Argo CD version (empty = latest stable)
+argocd_version: "{{ lookup('env', 'ARGOCD_VERSION') | default('', true) }}"
+
+# Git repository URL for Argo CD to watch
+argocd_repo_url: "{{ lookup('env', 'ARGOCD_REPO_URL') | default('', true) }}"
+
+# SSH private key for private repo access (content, not path)
+argocd_repo_ssh_private_key: "{{ lookup('env', 'ARGOCD_REPO_SSH_PRIVATE_KEY') | default('', true) }}"
+
+# Path within the repo where Kubernetes app manifests live
+argocd_app_path: "{{ lookup('env', 'ARGOCD_APP_PATH') | default('kubernetes/apps', true) }}"
+
+# Name of the bootstrap Application resource
+argocd_app_name: "{{ lookup('env', 'ARGOCD_APP_NAME') | default('homelab', true) }}"
+
+# Sync policy — all default to true for GitOps
+argocd_auto_sync: "{{ lookup('env', 'ARGOCD_AUTO_SYNC') | default('true', true) }}"
+argocd_self_heal: "{{ lookup('env', 'ARGOCD_SELF_HEAL') | default('true', true) }}"
+argocd_prune: "{{ lookup('env', 'ARGOCD_PRUNE') | default('true', true) }}"
+
+# Admin password bcrypt hash (if set, overrides the auto-generated password)
+argocd_admin_password_hash: "{{ lookup('env', 'ARGOCD_ADMIN_PASSWORD_HASH') | default('', true) }}"
+
+# Git branch/tag/commit that Argo CD tracks (HEAD = default branch)
+argocd_target_revision: "{{ lookup('env', 'ARGOCD_TARGET_REVISION') | default('HEAD', true) }}"

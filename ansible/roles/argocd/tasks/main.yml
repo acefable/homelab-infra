@@ -1,0 +1,134 @@
+---
+# Layer 5 — GitOps
+# Installs Argo CD and bootstraps the homelab Application
+
+- name: Create Argo CD namespace
+  ansible.builtin.command:
+    cmd: "kubectl create namespace {{ argocd_namespace }}"
+  register: _argocd_ns_create
+  failed_when:
+    - _argocd_ns_create.rc != 0
+    - "'AlreadyExists' not in _argocd_ns_create.stderr"
+  changed_when: _argocd_ns_create.rc == 0
+
+- name: Warn if Argo CD version is not pinned
+  ansible.builtin.assert:
+    that:
+      - argocd_version | length > 0
+    fail_msg: >-
+      argocd_version is empty. This will use the mutable 'stable' manifest,
+      which is non-deterministic. Set a pinned version like 'v2.12.4'.
+    quiet: true
+  ignore_errors: true
+
+- name: Construct Argo CD install manifest URL
+  ansible.builtin.set_fact:
+    _argocd_install_url: >-
+      {% if argocd_version | length > 0 -%}
+      {{ argocd_manifest_base_url }}/{{ argocd_version }}/manifests/install.yaml{%- else -%}
+      {{ argocd_manifest_base_url }}/{{ argocd_manifest_path }}{%- endif %}
+
+- name: Download Argo CD install manifest
+  ansible.builtin.get_url:
+    url: "{{ _argocd_install_url }}"
+    dest: /tmp/argocd-install.yaml
+    mode: "0644"
+
+- name: Apply Argo CD install manifest (server-side to avoid 256KB annotation limit)
+  ansible.builtin.command:
+    cmd: "kubectl apply -f /tmp/argocd-install.yaml -n {{ argocd_namespace }} --server-side --force-conflicts"
+  changed_when: true
+
+- name: Wait for Argo CD deployments to be ready
+  ansible.builtin.command:
+    cmd: >-
+      kubectl wait --for=condition=Available deployment
+      -l app.kubernetes.io/part-of=argocd
+      -n {{ argocd_namespace }} --timeout=300s
+  register: _argocd_wait
+  retries: 10
+  delay: 6
+  until: _argocd_wait.rc == 0
+  changed_when: false
+
+- name: Patch argocd-server service type
+  ansible.builtin.command:
+    cmd: >-
+      kubectl patch svc argocd-server -n {{ argocd_namespace }}
+      --type=merge -p '{"spec":{"type":"{{ argocd_server_service_type }}"}}'
+  changed_when: true
+
+- name: Template repo credentials secret
+  ansible.builtin.template:
+    src: repo-secret.yml.j2
+    dest: /tmp/argocd-repo-secret.yaml
+    mode: "0600"
+  no_log: true
+  when:
+    - argocd_create_repo_secret | bool
+    - argocd_repo_url | length > 0
+
+- name: Apply repo credentials secret
+  ansible.builtin.command:
+    cmd: "kubectl apply -f /tmp/argocd-repo-secret.yaml"
+  no_log: true
+  when:
+    - argocd_create_repo_secret | bool
+    - argocd_repo_url | length > 0
+  changed_when: true
+
+- name: Template bootstrap Application manifest
+  ansible.builtin.template:
+    src: bootstrap-app.yml.j2
+    dest: /tmp/argocd-bootstrap-app.yaml
+    mode: "0644"
+  when: argocd_bootstrap_app | bool
+
+- name: Apply bootstrap Application manifest
+  ansible.builtin.command:
+    cmd: "kubectl apply -f /tmp/argocd-bootstrap-app.yaml"
+  when: argocd_bootstrap_app | bool
+  changed_when: true
+
+- name: Retrieve initial admin password
+  ansible.builtin.command:
+    cmd: >-
+      kubectl -n {{ argocd_namespace }} get secret argocd-initial-admin-secret
+      -o jsonpath='{.data.password}'
+  register: _argocd_admin_secret
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: Instruct user how to retrieve admin password
+  ansible.builtin.debug:
+    msg: >-
+      Argo CD installed. Retrieve the admin password with:
+      kubectl -n {{ argocd_namespace }} get secret argocd-initial-admin-secret
+      -o jsonpath='{.data.password}' | base64 -d
+  when:
+    - _argocd_admin_secret.rc == 0
+    - _argocd_admin_secret.stdout | length > 0
+
+- name: Update admin password with custom hash
+  ansible.builtin.command:
+    cmd: >-
+      kubectl patch secret argocd-secret -n {{ argocd_namespace }}
+      --type=merge -p
+      '{"data":{"admin.password":"{{ _argocd_encoded_hash }}","admin.passwordMtime":"{{ _argocd_pw_mtime }}"}}'
+  vars:
+    _argocd_encoded_hash: "{{ argocd_admin_password_hash | b64encode }}"
+    _argocd_pw_mtime: "{{ ansible_facts.date_time.iso8601 | b64encode }}"
+  when:
+    - argocd_admin_password_hash | length > 0
+  changed_when: true
+  no_log: true
+
+- name: Clean up temporary files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/argocd-install.yaml
+    - /tmp/argocd-repo-secret.yaml
+    - /tmp/argocd-bootstrap-app.yaml
