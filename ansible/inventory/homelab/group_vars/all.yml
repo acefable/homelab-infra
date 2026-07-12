@@ -96,7 +96,7 @@ argocd_repo_url: "{{ lookup('env', 'ARGOCD_REPO_URL') | default('', true) }}"
 argocd_repo_ssh_private_key: "{{ lookup('env', 'ARGOCD_REPO_SSH_PRIVATE_KEY') | default('', true) }}"
 
 # Path within the repo where Kubernetes app manifests live
-argocd_app_path: "{{ lookup('env', 'ARGOCD_APP_PATH') | default('kubernetes/apps', true) }}"
+argocd_app_path: "{{ lookup('env', 'ARGOCD_APP_PATH') | default('kubernetes/argocd', true) }}"
 
 # Name of the bootstrap Application resource
 argocd_app_name: "{{ lookup('env', 'ARGOCD_APP_NAME') | default('homelab', true) }}"
