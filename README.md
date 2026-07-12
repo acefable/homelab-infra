@@ -2,26 +2,14 @@
 
 > 🏠 A fully reproducible homelab built with Infrastructure as Code.
 
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+## Stack
 
-## Architecture
-
-| Layer | Tool | Responsibility |
-|-------|------|---------------|
-| Configuration | Ansible | OS setup, packages, Docker, K3s, security hardening |
-| Infrastructure | Terraform *(planned)* | Cloud resources (Cloudflare DNS, Hetzner VMs, etc.) |
-| GitOps | Argo CD *(planned)* | Kubernetes application deployment and reconciliation |
-
-## Current Status
-
-**Layer 1 — Bootstrap** is complete. The Ansible playbook configures:
-- ✅ apt updates & upgrades
-- ✅ Common packages (git, curl, wget, unzip, jq, htop, vim, net-tools)
-- ✅ Hostname, timezone, locale, NTP
-- ✅ SSH server settings
-- ✅ apt mirror selection
-
-Additional layers (security, Docker, K3s, Cloudflare Tunnel, Argo CD) will be built in future iterations.
+| Layer | Tool | What it does |
+|-------|------|-------------|
+| OS config | Ansible | Ubuntu bootstrap, security hardening, K3s install |
+| Cloud | Terraform | Cloudflare DNS records, tunnel, ingress rules |
+| GitOps | Argo CD | Deploys and reconciles Kubernetes manifests |
+| K8s apps | Kubernetes YAMLs | PostgreSQL, Redis, Prometheus, Grafana, whoami |
 
 ## Quick Start
 
@@ -30,72 +18,56 @@ Additional layers (security, Docker, K3s, Cloudflare Tunnel, Argo CD) will be bu
 cp .env.example .env
 # Edit .env with your server details
 
-# 2. Source environment variables (required every new terminal session)
+# 2. Source environment variables
 source .env
 
-# 3. Install Ansible collections (one-time)
-cd ansible
-ansible-galaxy install -r requirements.yml
+# 3. Install Ansible collections
+ansible-galaxy install -r ansible/requirements.yml
 
-# 4. If your user needs a sudo password:
-ansible-playbook playbooks/bootstrap.yml --ask-become-pass
-
-# OR if you have passwordless sudo configured:
-ansible-playbook playbooks/bootstrap.yml
+# 4. Run bootstrap
+ansible-playbook ansible/playbooks/bootstrap.yml
 ```
+
+## Layers
+
+The bootstrap playbook runs 6 layers in sequence:
+
+| # | Layer | Roles |
+|---|-------|-------|
+| 1 | Bootstrap | apt, common-packages, hostname, timezone, locale, ntp, ssh |
+| 2 | Security | UFW, fail2ban, unattended upgrades |
+| 3 | Kubernetes | K3s single-node cluster |
+| 4 | Networking | Cloudflare Tunnel (cloudflared) |
+| 5 | GitOps | Argo CD installation |
+| 6 | Secrets | Auto-generates DB passwords as K8s secrets |
 
 ## Project Layout
 
 ```
-├── ansible/           # Server configuration (active — Layer 1 done)
-│   ├── inventory/     # Host definitions and group variables
-│   ├── playbooks/     # Playbook entrypoints
-│   ├── roles/         # Reusable roles (apt, ssh, ntp, etc.)
-│   ├── ansible.cfg    # Ansible configuration
-│   └── requirements.yml  # Collection dependencies
-├── docs/              # Roadmap and design documentation
-│   └── context.md     # Full project roadmap and architecture
-├── .env.example       # Environment variable template
-├── .gitignore         # Git ignore rules
-├── opencode.json      # OpenCode agent configuration
-├── LICENSE            # Apache 2.0
-└── README.md          # This file
+├── ansible/              # Server config (12 roles)
+│   ├── inventory/        # Host definitions, group vars
+│   ├── playbooks/        # bootstrap.yml — all layers
+│   └── roles/            # apt, ssh, k3s, argocd, cloudflare-tunnel, …
+├── terraform/
+│   └── cloudflare/       # DNS records, tunnel, ingress rules
+├── kubernetes/
+│   ├── apps/whoami       # Test app
+│   ├── databases/        # PostgreSQL, Redis
+│   ├── monitoring/       # Prometheus, Grafana, node-exporter, kube-state-metrics
+│   └── argocd/           # Application CRDs (databases, monitoring, whoami)
+├── .env.example          # Environment variable template
+└── docs/context.md       # Full roadmap and design notes
 ```
 
-## 🔐 Secrets Management
+## 🔐 Secrets
 
-**No secrets are committed to this repository.**
+**No secrets committed to this repo.** All sensitive values are injected via environment variables at runtime (see [`.env.example`](.env.example)).
 
-Sensitive values are injected through:
-1. **Environment variables** — for local development (see [`.env.example`](.env.example))
-2. **GitHub Secrets** — for CI/CD workflows (future)
-
-### Required Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ANSIBLE_USER` | SSH user for Ansible | `ubuntu` |
-| `ANSIBLE_SSH_PRIVATE_KEY_FILE` | Path to SSH private key | `~/.ssh/id_ed25519` |
-| `HOMELAB_SERVER_IP` | Target server IP address | `192.168.1.100` |
-| `HOMELAB_HOSTNAME` | System hostname to set on the server | `ubuntu-server` |
-| `APT_MIRROR` | APT package mirror URL | `http://archive.ubuntu.com/ubuntu` |
-
-> ⚠️ `.env` files must use `export KEY=value` syntax (see `.env.example`), or source with `set -a` to make variables available to Ansible.
-
-### Required for `--ask-become-pass`
-
-If your SSH user requires a password for `sudo`, add `--ask-become-pass` to the `ansible-playbook` command. Configure passwordless sudo with:
-
-```bash
-echo "your-user ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/your-user
-```
-
-## Design Principles
-
-- **Reproducible** — Fresh Ubuntu → clone repo → run Ansible → full infrastructure
-- **Declarative** — Prefer configuration over imperative scripts
-- **Separated concerns** — Terraform = cloud, Ansible = OS, Argo CD = apps
-- **Security-first** — Secrets are never committed; SSH-only access
+Required vars:
+- `ANSIBLE_USER`, `ANSIBLE_SSH_PRIVATE_KEY_FILE` — SSH access
+- `HOMELAB_SERVER_IP`, `HOMELAB_HOSTNAME` — target server
+- `TF_VAR_cloudflare_*` — Cloudflare API token, account ID, zone ID
+- `ARGOCD_REPO_SSH_PRIVATE_KEY` — deploy key for Argo CD
 
 ## License
 
