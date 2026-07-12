@@ -1,23 +1,61 @@
 ---
 # Layer 4 — Networking
-# Installs cloudflared and connects to an existing Cloudflare Tunnel via token.
+# Deploys cloudflared as a Kubernetes Deployment inside the cluster.
+# This allows cloudflared to resolve *.svc.cluster.local DNS natively via CoreDNS.
 
-- name: Download cloudflared binary
-  ansible.builtin.get_url:
-    url: "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"
-    dest: "{{ cloudflare_tunnel_bin }}"
-    mode: "0755"
+- name: Create cloudflared namespace
+  ansible.builtin.command:
+    cmd: "kubectl create namespace {{ cloudflare_tunnel_namespace }}"
+  register: _ns_create
+  failed_when:
+    - _ns_create.rc != 0
+    - "'AlreadyExists' not in _ns_create.stderr"
+  changed_when: _ns_create.rc == 0
 
-- name: Template systemd service
+- name: Template cloudflared Kubernetes manifest
   ansible.builtin.template:
-    src: cloudflared.service.j2
-    dest: /etc/systemd/system/cloudflared.service
-    mode: "0644"
-  notify: Restart cloudflared
+    src: cloudflared-deployment.yml.j2
+    dest: /tmp/cloudflared-deployment.yaml
+    mode: "0600"
+  no_log: true
 
-- name: Enable and start cloudflared
+- name: Apply cloudflared Kubernetes manifest
+  ansible.builtin.command:
+    cmd: "kubectl apply -f /tmp/cloudflared-deployment.yaml"
+  changed_when: true
+  no_log: true
+
+- name: Wait for cloudflared deployment to be ready
+  ansible.builtin.command:
+    cmd: "kubectl wait --for=condition=Available deployment/cloudflared -n {{ cloudflare_tunnel_namespace }} --timeout=120s"
+  register: _cloudflared_wait
+  retries: 5
+  delay: 5
+  until: _cloudflared_wait.rc == 0
+  changed_when: false
+
+- name: Stop and disable old cloudflared systemd service, if present
   ansible.builtin.systemd:
     name: cloudflared
-    state: started
-    enabled: true
+    state: stopped
+    enabled: false
     daemon_reload: true
+  failed_when: false
+  changed_when: false
+
+- name: Remove old cloudflared binary, if present
+  ansible.builtin.file:
+    path: "{{ cloudflare_tunnel_bin }}"
+    state: absent
+  failed_when: false
+
+- name: Remove old cloudflared systemd unit file, if present
+  ansible.builtin.file:
+    path: /etc/systemd/system/cloudflared.service
+    state: absent
+  failed_when: false
+
+- name: Clean up temporary manifest
+  ansible.builtin.file:
+    path: /tmp/cloudflared-deployment.yaml
+    state: absent
