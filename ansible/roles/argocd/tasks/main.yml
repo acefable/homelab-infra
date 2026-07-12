@@ -17,7 +17,7 @@
       - argocd_version | length > 0
     fail_msg: >-
       argocd_version is empty. This will use the mutable 'stable' manifest,
-      which is non-deterministic. Set a pinned version like 'v2.12.4'.
+      which is non-deterministic. Set a pinned version like 'v3.4.5'.
     quiet: true
   ignore_errors: true
 
@@ -110,19 +110,35 @@
     - _argocd_admin_secret.rc == 0
     - _argocd_admin_secret.stdout | length > 0
 
-- name: Update admin password with custom hash
+- name: Check if --insecure flag is already set on argocd-server
+  ansible.builtin.shell:
+    cmd: >-
+      kubectl get deployment argocd-server -n {{ argocd_namespace }}
+      -o json | jq -r '.spec.template.spec.containers[0].args // [] | any(. == "--insecure")'
+  register: _argocd_insecure_check
+  changed_when: false
+  failed_when: false
+
+- name: Run argocd-server in insecure mode (for Cloudflare Tunnel)
   ansible.builtin.command:
     cmd: >-
-      kubectl patch secret argocd-secret -n {{ argocd_namespace }}
-      --type=merge -p
-      '{"data":{"admin.password":"{{ _argocd_encoded_hash }}","admin.passwordMtime":"{{ _argocd_pw_mtime }}"}}'
-  vars:
-    _argocd_encoded_hash: "{{ argocd_admin_password_hash | b64encode }}"
-    _argocd_pw_mtime: "{{ ansible_facts.date_time.iso8601 | b64encode }}"
+      kubectl patch deployment argocd-server -n {{ argocd_namespace }}
+      --type json
+      -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--insecure"}]'
+  register: _argocd_insecure_patch
   when:
-    - argocd_admin_password_hash | length > 0
-  changed_when: true
-  no_log: true
+    - _argocd_insecure_check.stdout | default('false') | trim != 'true'
+  changed_when: _argocd_insecure_patch.rc == 0
+  failed_when: _argocd_insecure_patch.rc != 0
+
+- name: Verify --insecure was applied (re-check args after potential patch)
+  ansible.builtin.shell:
+    cmd: >-
+      kubectl get deployment argocd-server -n {{ argocd_namespace }}
+      -o json | jq -r '.spec.template.spec.containers[0].args | any(. == "--insecure")'
+  register: _argocd_insecure_verify
+  changed_when: false
+  failed_when: _argocd_insecure_verify.stdout | default('false') | trim != 'true'
 
 - name: Clean up temporary files
   ansible.builtin.file:

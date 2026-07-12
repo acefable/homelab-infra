@@ -22,6 +22,6 @@ ingress_rules = [
   },
   {
     hostname = "argocd.acefable.com"
-    service  = "https://argocd-server.argocd.svc.cluster.local:443"
+    service  = "http://argocd-server.argocd.svc.cluster.local:443"
   },
 ]
