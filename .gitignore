@@ -56,8 +56,6 @@ Desktop.ini
 # =====================
 # Secrets catch-all
 # =====================
-*secret*
-*vault*
 *.age
 *.sops
 
