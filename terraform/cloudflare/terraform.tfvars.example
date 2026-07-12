@@ -18,10 +18,10 @@
 ingress_rules = [
   {
     hostname = "whoami.acefable.com"
-    service  = "http://localhost:31337"
+    service  = "http://whoami.default.svc.cluster.local:80"
   },
   {
     hostname = "argocd.acefable.com"
-    service  = "http://argocd-server.argocd.svc.cluster.local:443"
-  }
+    service  = "https://argocd-server.argocd.svc.cluster.local:443"
+  },
 ]
