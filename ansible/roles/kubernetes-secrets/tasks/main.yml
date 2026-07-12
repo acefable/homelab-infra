@@ -1,0 +1,78 @@
+---
+# Layer 6/7/8 — Bootstrap Secrets
+# Runs AFTER Argo CD is installed and namespaces will be created by ArgoCD sync.
+# Generates random passwords persisted to disk (idempotent — re-running won't rotate).
+
+- name: Generate Grafana admin username
+  ansible.builtin.set_fact:
+    _grafana_username: "{{ lookup('password', '~/.homelab/secrets/grafana-username chars=ascii_letters length=16') }}"
+
+- name: Generate Grafana admin password
+  ansible.builtin.set_fact:
+    _grafana_password: "{{ lookup('password', '~/.homelab/secrets/grafana-password chars=ascii_letters,digits length=32') }}"
+
+- name: Generate PostgreSQL password
+  ansible.builtin.set_fact:
+    _postgresql_password: "{{ lookup('password', '~/.homelab/secrets/postgresql-password chars=ascii_letters,digits length=32') }}"
+
+- name: Generate Redis password
+  ansible.builtin.set_fact:
+    _redis_password: "{{ lookup('password', '~/.homelab/secrets/redis-password chars=ascii_letters,digits length=32') }}"
+
+# Namespaces are created by ArgoCD (CreateNamespace=true), but creating them
+# here first ensures secrets can be placed before ArgoCD syncs.
+
+- name: Ensure monitoring namespace exists
+  ansible.builtin.command:
+    cmd: kubectl create namespace monitoring
+  register: _ns_monitoring
+  failed_when:
+    - _ns_monitoring.rc != 0
+    - '"AlreadyExists" not in _ns_monitoring.stderr'
+  changed_when: _ns_monitoring.rc == 0
+
+- name: Ensure databases namespace exists
+  ansible.builtin.command:
+    cmd: kubectl create namespace databases
+  register: _ns_databases
+  failed_when:
+    - _ns_databases.rc != 0
+    - '"AlreadyExists" not in _ns_databases.stderr'
+  changed_when: _ns_databases.rc == 0
+
+- name: Create grafana-admin Secret
+  ansible.builtin.shell:
+    cmd: >-
+      kubectl create secret generic grafana-admin
+      --namespace monitoring
+      --from-literal=username={{ _grafana_username }}
+      --from-literal=password={{ _grafana_password }}
+      --dry-run=client -o yaml | kubectl apply -f -
+  changed_when: false
+
+- name: Create postgresql-secret Secret
+  ansible.builtin.shell:
+    cmd: >-
+      kubectl create secret generic postgresql-secret
+      --namespace databases
+      --from-literal=password={{ _postgresql_password }}
+      --dry-run=client -o yaml | kubectl apply -f -
+  changed_when: false
+
+- name: Create redis-password Secret
+  ansible.builtin.shell:
+    cmd: >-
+      kubectl create secret generic redis-password
+      --namespace databases
+      --from-literal=password={{ _redis_password }}
+      --dry-run=client -o yaml | kubectl apply -f -
+  changed_when: false
+
+- name: Print instructions to retrieve generated passwords
+  ansible.builtin.debug:
+    msg:
+      - "Generated passwords stored on disk at ~/.homelab/secrets/"
+      - "Retrieve with: cat ~/.homelab/secrets/grafana-username"
+      - "Retrieve with: cat ~/.homelab/secrets/grafana-password"
+      - "Retrieve with: cat ~/.homelab/secrets/postgresql-password"
+      - "Retrieve with: cat ~/.homelab/secrets/redis-password"
